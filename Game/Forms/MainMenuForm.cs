@@ -1,0 +1,127 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace Game.Forms
+{
+    public partial class MainMenuForm : Form
+    {
+        private TextBox txtPlayerName;
+        private Button btnStart;
+        private Button btnLeaderboard;
+        private Button btnExit;
+
+        public MainMenuForm()
+        {
+            InitializeComponent();
+        }
+
+        private void InitializeComponent()
+        {
+            this.Text = "Trivia Challenge - Menú Principal";
+            this.Size = new Size(600, 500);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.BackColor = Color.FromArgb(45, 45, 48);
+
+            Label titleLabel = new Label
+            {
+                Text = "?? TRIVIA CHALLENGE",
+                Font = new Font("Segoe UI", 28, FontStyle.Bold),
+                ForeColor = Color.FromArgb(0, 122, 204),
+                AutoSize = true,
+                Location = new Point(100, 50)
+            };
+
+            Label subtitleLabel = new Label
+            {
+                Text = "¿Estás listo para el desafío?",
+                Font = new Font("Segoe UI", 12),
+                ForeColor = Color.White,
+                AutoSize = true,
+                Location = new Point(180, 110)
+            };
+
+            txtPlayerName = new TextBox
+            {
+                Name = "txtPlayerName",
+                Font = new Font("Segoe UI", 14),
+                Size = new Size(300, 35),
+                Location = new Point(150, 160),
+                Text = "Jugador 1"
+            };
+
+            btnStart = new Button
+            {
+                Text = "? Jugar",
+                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                Size = new Size(300, 50),
+                Location = new Point(150, 220),
+                BackColor = Color.FromArgb(0, 122, 204),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnStart.FlatAppearance.BorderSize = 0;
+            btnStart.Click += BtnStart_Click;
+
+            btnLeaderboard = new Button
+            {
+                Text = "?? Tabla de Líderes",
+                Font = new Font("Segoe UI", 12),
+                Size = new Size(300, 45),
+                Location = new Point(150, 285),
+                BackColor = Color.FromArgb(60, 60, 60),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnLeaderboard.FlatAppearance.BorderSize = 0;
+            btnLeaderboard.Click += BtnLeaderboard_Click;
+
+            btnExit = new Button
+            {
+                Text = "? Salir",
+                Font = new Font("Segoe UI", 12),
+                Size = new Size(300, 45),
+                Location = new Point(150, 345),
+                BackColor = Color.FromArgb(60, 60, 60),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand
+            };
+            btnExit.FlatAppearance.BorderSize = 0;
+            btnExit.Click += BtnExit_Click;
+
+            this.Controls.AddRange(new Control[] {
+                titleLabel, subtitleLabel, txtPlayerName,
+                btnStart, btnLeaderboard, btnExit
+            });
+        }
+
+        private void BtnStart_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtPlayerName.Text))
+            {
+                MessageBox.Show("Por favor, ingresa tu nombre", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            var gameForm = new GameForm(txtPlayerName.Text);
+            gameForm.FormClosed += (s, args) => this.Show();
+            this.Hide();
+            gameForm.Show();
+        }
+
+        private void BtnLeaderboard_Click(object sender, EventArgs e)
+        {
+            var leaderboardForm = new LeaderboardForm();
+            leaderboardForm.ShowDialog();
+        }
+
+        private void BtnExit_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+    }
+}

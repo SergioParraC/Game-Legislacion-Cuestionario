@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Facade/Facade.csproj" />
+  <Project Path="Foundation/Foundation.csproj" />
+  <Project Path="Game/Game.csproj" />
+</Solution>
