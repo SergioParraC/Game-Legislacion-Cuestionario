@@ -4,7 +4,7 @@ namespace Game.Enums
     {
         ReducedTime,
         ShuffleOptions,
-        HarderQuestion,
+        GhostAnswer,
         BlockPowerUp,
         Nothing
     }

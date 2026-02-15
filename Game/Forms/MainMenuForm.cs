@@ -27,12 +27,31 @@ namespace Game.Forms
 
             Label titleLabel = new Label
             {
-                Text = "?? TRIVIA CHALLENGE",
+                Text = "TRIVIA CHALLENGE",
                 Font = new Font("Segoe UI", 28, FontStyle.Bold),
                 ForeColor = Color.FromArgb(0, 122, 204),
                 AutoSize = true,
-                Location = new Point(100, 50)
             };
+
+            PictureBox picTitle = new PictureBox
+            {
+                Image = Properties.Resources.gameControl,
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Size = new Size(80, 80),
+                Margin = new Padding(0, 0, 6, 0),
+            };
+
+            FlowLayoutPanel flowTitle = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                WrapContents = false,
+                FlowDirection = FlowDirection.LeftToRight,
+                Padding = new Padding(0),
+                Margin = new Padding(0),
+                Location = new Point(80, 50),
+            };
+            flowTitle.Controls.Add(picTitle);
+            flowTitle.Controls.Add(titleLabel);
 
             Label subtitleLabel = new Label
             {
@@ -51,37 +70,45 @@ namespace Game.Forms
                 Location = new Point(150, 160),
                 Text = "Jugador 1"
             };
-
             btnStart = new Button
             {
-                Text = "? Jugar",
+                Image = new Bitmap(Properties.Resources.playGame, new Size(35, 35)),
+                Text = "Jugar",
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
                 Size = new Size(300, 50),
                 Location = new Point(150, 220),
                 BackColor = Color.FromArgb(0, 122, 204),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                ImageAlign = ContentAlignment.MiddleLeft,
+                TextAlign = ContentAlignment.MiddleCenter
             };
             btnStart.FlatAppearance.BorderSize = 0;
             btnStart.Click += BtnStart_Click;
 
             btnLeaderboard = new Button
             {
-                Text = "?? Tabla de Líderes",
+                Image = new Bitmap(Properties.Resources.positionList, new Size(35, 35)),
+                Text = "Tabla de Líderes",
                 Font = new Font("Segoe UI", 12),
                 Size = new Size(300, 45),
                 Location = new Point(150, 285),
                 BackColor = Color.FromArgb(60, 60, 60),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                ImageAlign = ContentAlignment.MiddleLeft,
+                TextAlign = ContentAlignment.MiddleCenter
             };
             btnLeaderboard.FlatAppearance.BorderSize = 0;
             btnLeaderboard.Click += BtnLeaderboard_Click;
 
             btnExit = new Button
             {
+                Image = new Bitmap(Properties.Resources.exit, new Size(35, 35)),
                 Text = "? Salir",
                 Font = new Font("Segoe UI", 12),
                 Size = new Size(300, 45),
@@ -89,13 +116,16 @@ namespace Game.Forms
                 BackColor = Color.FromArgb(60, 60, 60),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                ImageAlign = ContentAlignment.MiddleLeft,
+                TextAlign = ContentAlignment.MiddleCenter
             };
             btnExit.FlatAppearance.BorderSize = 0;
             btnExit.Click += BtnExit_Click;
 
             this.Controls.AddRange(new Control[] {
-                titleLabel, subtitleLabel, txtPlayerName,
+                flowTitle, subtitleLabel, txtPlayerName,
                 btnStart, btnLeaderboard, btnExit
             });
         }

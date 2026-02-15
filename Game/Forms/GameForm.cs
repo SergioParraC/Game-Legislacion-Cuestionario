@@ -11,11 +11,28 @@ namespace Game.Forms
     {
         private readonly GameManager _gameManager;
         private System.Windows.Forms.Timer _timer;
+        private System.Windows.Forms.Timer _shuffleTimer;
         private Label lblLevel, lblScore, lblStreak, lblQuestion, lblTimer, lblPenalty;
         private Button[] optionButtons;
         private Button btnEliminate, btnTime, btnRetry, btnDouble;
         private Panel powerUpPanel;
         private List<PowerUpType> powersUsed = new List<PowerUpType>();
+        private int _shuffleCountdown = 0;
+
+        private Button btnPowerUpActivated = new Button
+        {
+            Text = "",
+            Font = new Font("Segoe UI", 11, FontStyle.Bold),
+            Size = new Size(400, 45),
+            Location = new Point(250, 430), // Movido debajo de las opciones
+            BackColor = System.Drawing.Color.Transparent, // Verde sólido
+            ForeColor = Color.FromArgb(255, 21, 255, 0),
+            FlatStyle = FlatStyle.Flat,
+            Visible = false,
+            TextAlign = ContentAlignment.MiddleLeft,
+            TextImageRelation = TextImageRelation.ImageBeforeText,
+            ImageAlign = ContentAlignment.MiddleLeft
+        };
 
         public GameForm(string playerName)
         {
@@ -24,6 +41,9 @@ namespace Game.Forms
             _gameManager.StartLevel(1);
             UpdateUI("Start");
             StartTimer();
+            
+            // Suscribirse al evento de cierre del formulario
+            this.FormClosing += GameForm_FormClosing;
         }
 
         private void InitializeComponent()
@@ -38,9 +58,11 @@ namespace Game.Forms
             lblLevel = CreateLabel("NIVEL 1", new Point(20, 20), new Font("Segoe UI", 16, FontStyle.Bold), Color.FromArgb(255, 193, 7));
             lblScore = CreateLabel("Puntos: 0", new Point(350, 20), new Font("Segoe UI", 16, FontStyle.Bold), Color.FromArgb(76, 175, 80));
             lblStreak = CreateLabel("Racha: 0", new Point(650, 20), new Font("Segoe UI", 16, FontStyle.Bold), Color.FromArgb(156, 39, 176));
-            lblTimer = CreateLabel("⏱ 15s", new Point(400, 70), new Font("Segoe UI", 24, FontStyle.Bold), Color.FromArgb(244, 67, 54));
-            lblPenalty = CreateLabel("", new Point(200, 120), new Font("Segoe UI", 12, FontStyle.Italic), Color.FromArgb(255, 152, 0));
-
+            lblTimer = CreateLabel("⏱ 15s", new Point(30, 70), new Font("Segoe UI", 24, FontStyle.Bold), Color.FromArgb(30, 67, 54));
+            // lblPenalty a la derecha del timer para mejor visibilidad
+            lblPenalty = CreateLabel("", new Point(150, 78), new Font("Segoe UI", 18, FontStyle.Bold | FontStyle.Italic), Color.FromArgb(255, 152, 0));
+            lblPenalty.MaximumSize = new Size(600, 0); // Ancho máximo para que no se salga del formulario
+            lblPenalty.AutoSize = true;
             lblQuestion = new Label
             {
                 Text = "Pregunta aquí",
@@ -73,14 +95,25 @@ namespace Game.Forms
 
             CreatePowerUpPanel();
 
+            // Configurar apariencia del botón de power-up activado
+            btnPowerUpActivated.FlatAppearance.BorderSize = 0;
+            btnPowerUpActivated.FlatAppearance.MouseOverBackColor = btnPowerUpActivated.BackColor;
             this.Controls.AddRange(new Control[] {
-                lblLevel, lblScore, lblStreak, lblTimer, lblPenalty, lblQuestion
+                lblLevel, lblScore, lblStreak, lblTimer, lblPenalty, lblQuestion, btnPowerUpActivated
             });
             this.Controls.AddRange(optionButtons);
             this.Controls.Add(powerUpPanel);
+            
+            // Asegurar que el botón de power-up esté al frente
+            btnPowerUpActivated.BringToFront();
 
             _timer = new System.Windows.Forms.Timer { Interval = 1000 };
             _timer.Tick += Timer_Tick;
+
+            // Timer de shuffle se ejecuta cada segundo para poder mostrar alertas
+            _shuffleTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+            _shuffleTimer.Tick += ShuffleTimer_Tick;
+            _gameManager.IsShufflePenaltyActive = false;
         }
 
         private void CreatePowerUpPanel()
@@ -95,16 +128,19 @@ namespace Game.Forms
 
             Label powerUpTitle = CreateLabel("⚡ POWER-UPS", new Point(10, 10), new Font("Segoe UI", 12, FontStyle.Bold), Color.FromArgb(255, 193, 7));
             powerUpPanel.Controls.Add(powerUpTitle);
-
-            btnEliminate = CreatePowerUpButton("🚫 Eliminar (3)", new Point(10, 50), PowerUpType.EliminateOption);
-            btnTime = CreatePowerUpButton("⏰ +5s (3)", new Point(210, 50), PowerUpType.ExtraTime);
-            btnRetry = CreatePowerUpButton("🔄 Reintento (2)", new Point(410, 50), PowerUpType.Retry);
-            btnDouble = CreatePowerUpButton("⭐ x2 (2)", new Point(610, 50), PowerUpType.DoublePoints);
+            PowerUp eliminate = new PowerUp(PowerUpType.EliminateOption);
+            btnEliminate = CreatePowerUpButton(eliminate.ShortName + " (2)", new Point(10, 50), PowerUpType.EliminateOption, eliminate.Image);
+            PowerUp time = new PowerUp(PowerUpType.ExtraTime);
+            btnTime = CreatePowerUpButton(time.ShortName + " (2)", new Point(210, 50), PowerUpType.ExtraTime, time.Image);
+            PowerUp retry = new PowerUp(PowerUpType.Retry);
+            btnRetry = CreatePowerUpButton(retry.ShortName + " (2)", new Point(410, 50), PowerUpType.Retry, retry.Image);
+            PowerUp dPoints = new PowerUp(PowerUpType.DoublePoints);
+            btnDouble = CreatePowerUpButton(dPoints.ShortName + " (2)", new Point(610, 50), PowerUpType.DoublePoints, dPoints.Image);
 
             powerUpPanel.Controls.AddRange(new Control[] { btnEliminate, btnTime, btnRetry, btnDouble });
         }
 
-        private Button CreatePowerUpButton(string text, Point location, PowerUpType type)
+        private Button CreatePowerUpButton(string text, Point location, PowerUpType type, Bitmap image)
         {
             var btn = new Button
             {
@@ -116,7 +152,11 @@ namespace Game.Forms
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand,
-                Tag = type
+                Tag = type,
+                TextAlign = ContentAlignment.MiddleLeft,
+                TextImageRelation = TextImageRelation.ImageBeforeText,
+                ImageAlign = ContentAlignment.MiddleLeft,
+                Image = image
             };
             btn.FlatAppearance.BorderSize = 0;
             btn.Click += PowerUpButton_Click;
@@ -145,11 +185,18 @@ namespace Game.Forms
                 UpdatePowerUpButtons("");
                 UpdateUI();
                 
-                string message = powerUpType == PowerUpType.Retry 
-                    ? "¡CAMBIO DE PREGUNTA activado!\n\nSi fallas, se cargará una pregunta diferente sin penalización." 
-                    : $"¡Power-up {powerUpType} activado!";
+                // Crear instancia de PowerUp para obtener la descripción
+                var powerUp = new PowerUp(powerUpType);
                 
-                MessageBox.Show(message, "Power-Up", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // Mostrar indicador visual del power-up activado
+                btnPowerUpActivated.Image = powerUp.Image;
+                btnPowerUpActivated.Text = $"   ✅ {powerUp.Name}: {powerUp.Description}";
+                btnPowerUpActivated.TextImageRelation = TextImageRelation.ImageBeforeText;
+                btnPowerUpActivated.ImageAlign = ContentAlignment.MiddleLeft;
+                btnPowerUpActivated.TextAlign = ContentAlignment.MiddleLeft;
+                btnPowerUpActivated.Visible = true;
+                btnPowerUpActivated.BringToFront();
+                
             }
             else
             {
@@ -163,6 +210,8 @@ namespace Game.Forms
             string selectedAnswer = button.Text;
 
             _timer.Stop();
+            _shuffleTimer.Stop();
+            _shuffleCountdown = 0; // Resetear contador
 
             bool isCorrect = _gameManager.CheckAnswer(selectedAnswer);
 
@@ -170,7 +219,8 @@ namespace Game.Forms
             {
                 button.BackColor = Color.FromArgb(76, 175, 80);
                 MessageBox.Show("✅ ¡Correcto!", "Resultado", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                
+                _gameManager.IsShufflePenaltyActive = false;
+                _gameManager.LastPenaltyMessage = "";
                 System.Threading.Thread.Sleep(500);
                 
                 // Avanzar a la siguiente pregunta
@@ -235,6 +285,8 @@ namespace Game.Forms
             if (_gameManager.TimeRemaining <= 0)
             {
                 _timer.Stop();
+                _shuffleTimer.Stop();
+                _shuffleCountdown = 0; // Resetear contador
                 MessageBox.Show("⏰ ¡Se acabó el tiempo!", "Tiempo agotado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 _gameManager.CheckAnswer("");
                 
@@ -257,8 +309,23 @@ namespace Game.Forms
             lblTimer.Text = $"⏱ {_gameManager.TimeRemaining}s";
             lblTimer.ForeColor = Color.FromArgb(244, 67, 54);
             lblQuestion.Text = _gameManager.CurrentQuestion.Text;
+            
+            // Actualizar mensaje de penalización y traerlo al frente
             lblPenalty.Text = _gameManager.LastPenaltyMessage;
+            if (!string.IsNullOrEmpty(_gameManager.LastPenaltyMessage))
+            {
+                lblPenalty.BringToFront();
+            }
+            
+            btnPowerUpActivated.Visible = false;
 
+            UpdateOptionsDisplay();
+            UpdatePowerUpButtons(gameState);
+        }
+
+        private void UpdateOptionsDisplay()
+        {
+            // Método separado para actualizar solo las opciones
             for (int i = 0; i < _gameManager.DisplayedOptions.Count && i < 4; i++)
             {
                 optionButtons[i].Text = _gameManager.DisplayedOptions[i];
@@ -270,12 +337,17 @@ namespace Game.Forms
             {
                 optionButtons[i].Visible = false;
             }
-
-            UpdatePowerUpButtons(gameState);
         }
 
         private void UpdatePowerUpButtons(String state)
         {
+            if (_gameManager.IsGhostAnswerActive)
+            {
+                var rnd = new Random();
+                int numberAnswer = rnd.Next(0, 4);
+                optionButtons[numberAnswer].BackColor = Color.FromArgb(50, 205, 243);
+                _gameManager.Penality = PenaltyType.Nothing;
+            }
             // Texto de los power-ups
             btnEliminate.Text = $"🚫 Eliminar ({_gameManager.Player.PowerUps[PowerUpType.EliminateOption]})";
             btnTime.Text = $"⏰ +5s ({_gameManager.Player.PowerUps[PowerUpType.ExtraTime]})";
@@ -348,11 +420,75 @@ namespace Game.Forms
         private void StartTimer()
         {
             _timer.Start();
+            
+            // Solo iniciar el timer de mezcla si la penalización está activa
+            if (_gameManager.IsShufflePenaltyActive)
+            {
+                _shuffleCountdown = 0; // Resetear contador
+                _shuffleTimer.Start();
+            }
+
         }
 
+        private void ShuffleTimer_Tick(object sender, EventArgs e)
+        {            
+            // Solo mezclar si la penalización sigue activa
+            if (_gameManager.IsShufflePenaltyActive)
+            {
+                _shuffleCountdown++;
+                
+                if (_shuffleCountdown == 5)
+                {
+                    // ⚠️ ALERTA: 2 segundos antes del shuffle
+                    ShowShuffleWarning();
+                }
+                else if (_shuffleCountdown >= 7)
+                {
+                    // 🔀 SHUFFLE: Mezclar opciones
+                    _gameManager.ShuffleCurrentOptions();
+                    UpdateOptionsDisplay();
+                    
+                    // Actualizar mensaje y resetear contador
+                    lblPenalty.Text = "🔀 ¡Opciones mezcladas! (Penalización activa)";
+                    lblPenalty.ForeColor = Color.FromArgb(255, 87, 34);
+                    lblPenalty.BringToFront();
+                    
+                    _shuffleCountdown = 0; // Resetear para el próximo ciclo
+                }
+            }
+            else
+            {
+                _shuffleTimer.Stop();
+                _shuffleCountdown = 0;
+            }
+        }
+
+        private void ShowShuffleWarning()
+        {
+            // Cambiar color de fondo de los botones a amarillo/naranja como advertencia
+            foreach (var btn in optionButtons)
+            {
+                if (btn.Visible)
+                {
+                    btn.BackColor = Color.FromArgb(255, 193, 7);
+                    btn.ForeColor = Color.Black;
+                }
+            }
+            
+            // Actualizar mensaje con cuenta regresiva
+            lblPenalty.Text = "⚠️ ¡ALERTA! Las opciones se mezclarán";
+            lblPenalty.ForeColor = Color.FromArgb(255, 193, 7);
+            
+            // Hacer que el mensaje parpadee y traerlo al frente
+            lblPenalty.Font = new Font(lblPenalty.Font, FontStyle.Bold | FontStyle.Italic);
+            lblPenalty.BringToFront();
+        }
+        
         private void LevelComplete()
         {
             _timer.Stop();
+            _shuffleTimer.Stop();
+            _shuffleCountdown = 0;
             powersUsed.Clear();
             if (_gameManager.CurrentLevel.Number < 4)
             {
@@ -382,6 +518,8 @@ namespace Game.Forms
         private void GameOver()
         {
             _timer.Stop();
+            _shuffleTimer.Stop();
+            _shuffleCountdown = 0;
             _gameManager.SaveProgress();
             MessageBox.Show(
                 $"🏆 ¡JUEGO TERMINADO!\n\nJugador: {_gameManager.Player.Name}\nNivel alcanzado: {_gameManager.CurrentLevel.Number}\nPuntuación final: {_gameManager.Player.Score}",
@@ -389,6 +527,33 @@ namespace Game.Forms
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
             this.Close();
+        }
+        
+        private void GameForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            // Detener todos los timers
+            _timer?.Stop();
+            _shuffleTimer?.Stop();
+            
+            // Guardar el progreso del jugador antes de cerrar
+            try
+            {
+                _gameManager.SaveProgress();
+            }
+            catch (Exception ex)
+            {                
+                // Preguntar al usuario si desea cerrar sin guardar
+                var result = MessageBox.Show(
+                    "Hubo un error al guardar tu progreso. ¿Deseas cerrar de todos modos?",
+                    "Error al guardar",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+                
+                if (result == DialogResult.No)
+                {
+                    e.Cancel = true; // Cancelar el cierre
+                }
+            }
         }
     }
 }

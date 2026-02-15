@@ -16,15 +16,15 @@ namespace Game.Models
             {
                 case PenaltyType.ReducedTime:
                     Name = "Menos Tiempo";
-                    Description = "Reduce 3 segundos del temporizador";
+                    Description = "Reduce 5 segundos del temporizador";
                     break;
                 case PenaltyType.ShuffleOptions:
                     Name = "Orden Confuso";
-                    Description = "Cambia el orden de las respuestas";
+                    Description = "Cambia el orden de las respuestas cada 5 segundos";
                     break;
-                case PenaltyType.HarderQuestion:
-                    Name = "Dificultad Sorpresa";
-                    Description = "Pregunta más difícil";
+                case PenaltyType.GhostAnswer:
+                    Name = "Respuesta fantasma";
+                    Description = "Cambia lijeramente el color de una de las respuestas para confundirte";
                     break;
                 case PenaltyType.BlockPowerUp:
                     Name = "Bloqueo";

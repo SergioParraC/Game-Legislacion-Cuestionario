@@ -1,4 +1,4 @@
-using Foundation.Models;
+﻿using Foundation.Models;
 using Game.Enums;
 using Game.Models;
 using System;
@@ -17,6 +17,8 @@ namespace Game.Managers
         public bool IsPowerUpBlocked { get; set; }
         public bool IsDoublePointsActive { get; set; }
         public bool IsRetryAvailable { get; set; }
+        public bool IsShufflePenaltyActive { get; set; }
+        public bool IsGhostAnswerActive { get; set; }
         public List<string> DisplayedOptions { get; private set; }
         public string LastPenaltyMessage { get; set; }
         public PenaltyType Penality { get; set; }
@@ -60,6 +62,11 @@ namespace Game.Managers
 
             LoadNextQuestion();
         }
+        private void ShuffleOptions()
+        {
+            DisplayedOptions = [.. CurrentQuestion.Options];
+            DisplayedOptions = [.. DisplayedOptions.OrderBy(x => _random.Next())];
+        }
 
         public void LoadNextQuestion()
         {
@@ -70,17 +77,14 @@ namespace Game.Managers
                 IsPowerUpBlocked = false;
                 IsDoublePointsActive = false;
                 IsRetryAvailable = false;
-                LastPenaltyMessage = string.Empty;
-
                 ShuffleOptions();
                 ApplyLevelPenalties();
-
             }
         }
 
-        private void ShuffleOptions()
+        public void ShuffleCurrentOptions()
         {
-            DisplayedOptions = [.. CurrentQuestion.Options];
+            // Método público para mezclar las opciones actuales desde el formulario
             DisplayedOptions = [.. DisplayedOptions.OrderBy(x => _random.Next())];
         }
 
@@ -161,7 +165,7 @@ namespace Game.Managers
                     ApplyRandomPenalty();
                     CurrentQuestionIndex++;
                 }
-                // Si tiene reintento, se manejar� el cambio de pregunta en el Form
+                // Si tiene reintento, se manejará el cambio de pregunta en el Form
             }
 
             return isCorrect;
@@ -169,6 +173,7 @@ namespace Game.Managers
 
         private void ApplyLevelPenalties()
         {
+            
             if (CurrentLevel.Number >= 2 && _random.Next(100) < 20)
             {
                 ApplyRandomPenalty();
@@ -184,7 +189,7 @@ namespace Game.Managers
                 ApplyBossPenalty();
             }
         }
-
+        
         private void ApplyRandomPenalty()
         {
             var penalties = Enum.GetValues(typeof(PenaltyType));
@@ -194,15 +199,20 @@ namespace Game.Managers
             {
                 case PenaltyType.ReducedTime:
                     TimeRemaining = Math.Max(5, TimeRemaining - 5);
-                    LastPenaltyMessage = "?? �Penalizaci�n! -5 segundos";
+                    LastPenaltyMessage = "⚠️ ¡Penalización! -5 segundos";
                     break; 
                 case PenaltyType.ShuffleOptions:
-                    ShuffleOptions();
-                    LastPenaltyMessage = "?? �Penalizaci�n! Opciones mezcladas";
+                    IsShufflePenaltyActive = true;
+                    ShuffleOptions();  // Mezcla inicial
+                    LastPenaltyMessage = "🔀 ¡Penalización! Opciones se mezclarán, atento!!!";
                     break;
                 case PenaltyType.BlockPowerUp:
                     IsPowerUpBlocked = true;
-                    LastPenaltyMessage = "?? �Penalizaci�n! Power-ups bloqueados";
+                    LastPenaltyMessage = "⚠️ ¡Penalización! Power-ups bloqueados";
+                    break;
+                case PenaltyType.GhostAnswer:
+                    LastPenaltyMessage = "👻 ¡Penalización! Respuesnta confusa";
+                    IsGhostAnswerActive = true;
                     break;
             }
         }
@@ -211,7 +221,7 @@ namespace Game.Managers
         {
             TimeRemaining -= 2;
             IsPowerUpBlocked = true;
-            LastPenaltyMessage = "?? �JEFE FINAL! Power-ups bloqueados y -2 segundos";
+            LastPenaltyMessage = "?? ¡JEFE FINAL! Power-ups bloqueados y -2 segundos";
         }
 
         public bool IsLevelComplete()

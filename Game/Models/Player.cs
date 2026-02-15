@@ -19,8 +19,8 @@ namespace Game.Models
             CorrectStreak = 0;
             PowerUps = new Dictionary<PowerUpType, int>
             {
-                { PowerUpType.EliminateOption, 3 },
-                { PowerUpType.ExtraTime, 3 },
+                { PowerUpType.EliminateOption, 2 },
+                { PowerUpType.ExtraTime, 2 },
                 { PowerUpType.Retry, 2 },
                 { PowerUpType.DoublePoints, 2 }
             };
