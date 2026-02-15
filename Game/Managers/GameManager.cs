@@ -19,6 +19,7 @@ namespace Game.Managers
         public bool IsRetryAvailable { get; set; }
         public List<string> DisplayedOptions { get; private set; }
         public string LastPenaltyMessage { get; set; }
+        public PenaltyType Penality { get; set; }
 
         private readonly ScoreManager _scoreManager;
         private readonly Facade.GameFacade _gameFacade;
@@ -39,11 +40,23 @@ namespace Game.Managers
             Player.CurrentLevel = levelNumber;
             CurrentQuestionIndex = 0;
 
-            CurrentLevel.Questions = _gameFacade.GetQuestionsForLevel(
+            var allQuestions = _gameFacade.GetQuestionsForLevel(
                 levelNumber,
                 CurrentLevel.QuestionCount,
                 CurrentLevel.HasBoss
             );
+
+            // Separar las preguntas: N preguntas activas + 1 de reserva
+            if (!CurrentLevel.HasBoss && allQuestions.Count > CurrentLevel.QuestionCount)
+            {
+                CurrentLevel.ReserveQuestion = allQuestions[allQuestions.Count - 1];
+                CurrentLevel.Questions = allQuestions.GetRange(0, CurrentLevel.QuestionCount);
+            }
+            else
+            {
+                CurrentLevel.Questions = allQuestions;
+                CurrentLevel.ReserveQuestion = null;
+            }
 
             LoadNextQuestion();
         }
@@ -74,6 +87,10 @@ namespace Game.Managers
         public bool UsePlayerPowerUp(PowerUpType type)
         {
             if (IsPowerUpBlocked)
+                return false;
+
+            // Para el Reintento, verificar que haya pregunta de reserva disponible
+            if (type == PowerUpType.Retry && CurrentLevel.ReserveQuestion == null)
                 return false;
 
             if (!Player.UsePowerUp(type))
@@ -124,15 +141,29 @@ namespace Game.Managers
                     IsDoublePointsActive
                 );
                 Player.Score += earnedPoints;
+                
+                // Si tiene Reintento activo y responde bien, lo desactiva sin efecto
+                if (IsRetryAvailable)
+                {
+                    IsRetryAvailable = false;
+                }
+                
+                // Avanzar a la siguiente pregunta
+                CurrentQuestionIndex++;
             }
             else
             {
-                Player.CorrectStreak = 0;
-                Player.Score = _scoreManager.ApplyErrorPenalty(Player.Score);
-                ApplyRandomPenalty();
+                // Si tiene reintento disponible, no aplica penalizaciones
+                if (!IsRetryAvailable)
+                {
+                    Player.CorrectStreak = 0;
+                    Player.Score = _scoreManager.ApplyErrorPenalty(Player.Score);
+                    ApplyRandomPenalty();
+                    CurrentQuestionIndex++;
+                }
+                // Si tiene reintento, se manejará el cambio de pregunta en el Form
             }
 
-            CurrentQuestionIndex++;
             return isCorrect;
         }
 
@@ -157,14 +188,14 @@ namespace Game.Managers
         private void ApplyRandomPenalty()
         {
             var penalties = Enum.GetValues(typeof(PenaltyType));
-            var penalty = (PenaltyType)penalties.GetValue(_random.Next(penalties.Length));
+            Penality = (PenaltyType)penalties.GetValue(_random.Next(penalties.Length));
 
-            switch (penalty)
+            switch (Penality)
             {
                 case PenaltyType.ReducedTime:
-                    TimeRemaining = Math.Max(3, TimeRemaining - 3);
-                    LastPenaltyMessage = "?? ¡Penalización! -3 segundos";
-                    break;
+                    TimeRemaining = Math.Max(5, TimeRemaining - 5);
+                    LastPenaltyMessage = "?? ¡Penalización! -5 segundos";
+                    break; 
                 case PenaltyType.ShuffleOptions:
                     ShuffleOptions();
                     LastPenaltyMessage = "?? ¡Penalización! Opciones mezcladas";
@@ -191,6 +222,25 @@ namespace Game.Managers
         public void SaveProgress()
         {
             _gameFacade.SaveGameProgress(Player.Name, Player.CurrentLevel, Player.Score);
+        }
+
+        public void ChangeToReserveQuestion()
+        {
+            if (CurrentLevel.ReserveQuestion != null)
+            {
+                // Cambiar la pregunta actual por la de reserva
+                CurrentQuestion = CurrentLevel.ReserveQuestion;
+                TimeRemaining = CurrentLevel.TimePerQuestion;
+                
+                // Eliminar la pregunta de reserva para que solo se use una vez
+                CurrentLevel.ReserveQuestion = null;
+                
+                // Desactivar el reintento
+                IsRetryAvailable = false;
+                
+                // Mezclar las opciones de la nueva pregunta
+                ShuffleOptions();
+            }
         }
     }
 }

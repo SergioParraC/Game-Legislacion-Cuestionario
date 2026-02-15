@@ -9,6 +9,7 @@ namespace Game.Models
         public int QuestionCount { get; set; }
         public bool HasBoss { get; set; }
         public List<Foundation.Models.Question> Questions { get; set; }
+        public Foundation.Models.Question ReserveQuestion { get; set; }
 
         public Level(int number)
         {

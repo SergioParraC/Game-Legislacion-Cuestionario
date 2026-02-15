@@ -20,7 +20,9 @@ namespace Facade
             var questions = new List<Question>();
             var normalQuestions = _questionRepository.GetQuestionsByDifficulty(level);
 
-            for (int i = 0; i < count && i < normalQuestions.Count; i++)
+            // Cargar N+1 preguntas (la última es de reserva)
+            int totalToLoad = includeBoss ? count : count + 1;
+            for (int i = 0; i < totalToLoad && i < normalQuestions.Count; i++)
             {
                 questions.Add(normalQuestions[i]);
             }

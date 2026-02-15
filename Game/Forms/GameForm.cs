@@ -15,6 +15,7 @@ namespace Game.Forms
         private Button[] optionButtons;
         private Button btnEliminate, btnTime, btnRetry, btnDouble;
         private Panel powerUpPanel;
+        private List<PowerUpType> powersUsed = new List<PowerUpType>();
 
         public GameForm(string playerName)
         {
@@ -138,12 +139,17 @@ namespace Game.Forms
         {
             var button = (Button)sender;
             var powerUpType = (PowerUpType)button.Tag;
-
+            powersUsed.Add(powerUpType);
             if (_gameManager.UsePlayerPowerUp(powerUpType))
             {
-                UpdatePowerUpButtons("",powerUpType);
+                UpdatePowerUpButtons("");
                 UpdateUI();
-                MessageBox.Show($"¡Power-up {powerUpType} activado!", "Power-Up", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                string message = powerUpType == PowerUpType.Retry 
+                    ? "¡CAMBIO DE PREGUNTA activado!\n\nSi fallas, se cargará una pregunta diferente sin penalización." 
+                    : $"¡Power-up {powerUpType} activado!";
+                
+                MessageBox.Show(message, "Power-Up", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
@@ -164,25 +170,57 @@ namespace Game.Forms
             {
                 button.BackColor = Color.FromArgb(76, 175, 80);
                 MessageBox.Show("✅ ¡Correcto!", "Resultado", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                System.Threading.Thread.Sleep(500);
+                
+                // Avanzar a la siguiente pregunta
+                if (_gameManager.IsLevelComplete())
+                {
+                    LevelComplete();
+                }
+                else
+                {
+                    _gameManager.LoadNextQuestion();
+                    UpdateUI();
+                    StartTimer();
+                }
             }
             else
             {
                 button.BackColor = Color.FromArgb(244, 67, 54);
-                MessageBox.Show($"❌ Incorrecto. La respuesta correcta era: {_gameManager.CurrentQuestion.GetCorrectAnswer()}", 
-                    "Resultado", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-
-            System.Threading.Thread.Sleep(500);
-
-            if (_gameManager.IsLevelComplete())
-            {
-                LevelComplete();
-            }
-            else
-            {
-                _gameManager.LoadNextQuestion();
-                UpdateUI();
-                StartTimer();
+                
+                // Verificar si tiene reintento disponible (cambio de pregunta)
+                if (_gameManager.IsRetryAvailable)
+                {
+                    MessageBox.Show($"❌ Incorrecto. ¡CAMBIO DE PREGUNTA activado!\n\nSe cargará una nueva pregunta.", 
+                        "Cambio de Pregunta", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    
+                    // Cambiar a la pregunta de reserva
+                    _gameManager.ChangeToReserveQuestion();
+                    
+                    // Restaurar UI con la nueva pregunta
+                    UpdateUI();
+                    StartTimer();
+                }
+                else
+                {
+                    MessageBox.Show($"❌ Incorrecto. La respuesta correcta era: {_gameManager.CurrentQuestion.GetCorrectAnswer()}", 
+                        "Resultado", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    
+                    System.Threading.Thread.Sleep(500);
+                    
+                    // Avanzar a la siguiente pregunta
+                    if (_gameManager.IsLevelComplete())
+                    {
+                        LevelComplete();
+                    }
+                    else
+                    {
+                        _gameManager.LoadNextQuestion();
+                        UpdateUI();
+                        StartTimer();
+                    }
+                }
             }
         }
 
@@ -236,7 +274,7 @@ namespace Game.Forms
             UpdatePowerUpButtons(gameState);
         }
 
-        private void UpdatePowerUpButtons(String state, PowerUpType power = PowerUpType.Nothing)
+        private void UpdatePowerUpButtons(String state)
         {
             // Texto de los power-ups
             btnEliminate.Text = $"🚫 Eliminar ({_gameManager.Player.PowerUps[PowerUpType.EliminateOption]})";
@@ -244,38 +282,67 @@ namespace Game.Forms
             btnRetry.Text = $"🔄 Reintento ({_gameManager.Player.PowerUps[PowerUpType.Retry]})";
             btnDouble.Text = $"⭐ x2 ({_gameManager.Player.PowerUps[PowerUpType.DoublePoints]})";
             // Habilitar o deshabilitar botones según disponibilidad
-            
-            if (power == PowerUpType.EliminateOption)
+            if (_gameManager.Penality == PenaltyType.BlockPowerUp)
             {
-                // Si se usó el power-up de eliminar, deshabilitarlo inmediatamente para evitar múltiples usos
-                btnEliminate.BackColor = Color.FromArgb(64, 64, 64);
+                // Si se ha aplicado una penalización, bloquear todos los power-ups durante esa pregunta
                 btnEliminate.Enabled = false;
-            }
-
-            if (power == PowerUpType.ExtraTime)
-            {
-                btnTime.BackColor = Color.FromArgb(64, 64, 64);
+                btnEliminate.BackColor = Color.FromArgb(64, 64, 64);
                 btnTime.Enabled = false;
-            }
-
-            if (power == PowerUpType.Retry)
-            {
-                btnRetry.BackColor = Color.FromArgb(64, 64, 64);
+                btnTime.BackColor = Color.FromArgb(64, 64, 64);
                 btnRetry.Enabled = false;
-            }
-            
-            if (power == PowerUpType.DoublePoints)
-            {
-                btnDouble.BackColor = Color.FromArgb(64, 64, 64);
+                btnRetry.BackColor = Color.FromArgb(64, 64, 64);
                 btnDouble.Enabled = false;
+                btnDouble.BackColor = Color.FromArgb(64, 64, 64);
+                _gameManager.Penality = PenaltyType.Nothing;
             }
-            if(state == "Start")
+            else
+            {
+                btnEliminate.Enabled = true;
+                btnEliminate.BackColor = Color.FromArgb(255, 193, 7);
+                btnTime.Enabled = true;
+                btnTime.BackColor = Color.FromArgb(255, 193, 7);
+                btnRetry.Enabled = true;
+                btnRetry.BackColor = Color.FromArgb(255, 193, 7);
+                btnDouble.Enabled = true;
+                btnDouble.BackColor = Color.FromArgb(255, 193, 74);
+                _gameManager.Penality = PenaltyType.Nothing;
+            }
+            foreach(PowerUpType power in powersUsed)
+            {
+                if (power == PowerUpType.EliminateOption)
+                {
+                    // Si se usó el power-up de eliminar, deshabilitarlo inmediatamente para evitar múltiples usos
+                    btnEliminate.BackColor = Color.FromArgb(64, 64, 64);
+                    btnEliminate.Enabled = false;
+                }
+    
+                if (power == PowerUpType.ExtraTime)
+                {
+                    btnTime.BackColor = Color.FromArgb(64, 64, 64);
+                    btnTime.Enabled = false;
+                }
+    
+                if (power == PowerUpType.Retry)
+                {
+                    btnRetry.BackColor = Color.FromArgb(64, 64, 64);
+                    btnRetry.Enabled = false;
+                }
+                    
+                if (power == PowerUpType.DoublePoints)
+                {
+                    btnDouble.BackColor = Color.FromArgb(64, 64, 64);
+                    btnDouble.Enabled = false;
+                }
+
+            }
+            if (state == "Start")
             {
                 btnEliminate.Enabled = !_gameManager.IsPowerUpBlocked && _gameManager.Player.PowerUps[PowerUpType.EliminateOption] > 0;
                 btnTime.Enabled = !_gameManager.IsPowerUpBlocked && _gameManager.Player.PowerUps[PowerUpType.ExtraTime] > 0;
                 btnRetry.Enabled = !_gameManager.IsPowerUpBlocked && _gameManager.Player.PowerUps[PowerUpType.Retry] > 0;
                 btnDouble.Enabled = !_gameManager.IsPowerUpBlocked && _gameManager.Player.PowerUps[PowerUpType.DoublePoints] > 0;
             }
+
         }
 
         private void StartTimer()
@@ -286,7 +353,7 @@ namespace Game.Forms
         private void LevelComplete()
         {
             _timer.Stop();
-
+            powersUsed.Clear();
             if (_gameManager.CurrentLevel.Number < 4)
             {
                 var result = MessageBox.Show(

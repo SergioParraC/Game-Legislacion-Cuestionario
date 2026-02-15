@@ -5,6 +5,7 @@ namespace Game.Enums
         ReducedTime,
         ShuffleOptions,
         HarderQuestion,
-        BlockPowerUp
+        BlockPowerUp,
+        Nothing
     }
 }
