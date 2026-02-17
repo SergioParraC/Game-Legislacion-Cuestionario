@@ -19,23 +19,23 @@ namespace Game.Models
             switch (number)
             {
                 case 1:
-                    TimePerQuestion = 15;
+                    TimePerQuestion = 20;
                     QuestionCount = 5;
                     HasBoss = false;
                     break;
                 case 2:
-                    TimePerQuestion = 12;
-                    QuestionCount = 7;
+                    TimePerQuestion = 17;
+                    QuestionCount = 5;
                     HasBoss = false;
                     break;
                 case 3:
-                    TimePerQuestion = 10;
-                    QuestionCount = 10;
+                    TimePerQuestion = 15;
+                    QuestionCount = 5;
                     HasBoss = false;
                     break;
                 case 4:
-                    TimePerQuestion = 7;
-                    QuestionCount = 3;
+                    TimePerQuestion = 12;
+                    QuestionCount = 4;
                     HasBoss = true;
                     break;
             }

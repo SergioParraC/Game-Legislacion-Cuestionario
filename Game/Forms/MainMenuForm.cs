@@ -109,7 +109,7 @@ namespace Game.Forms
             btnExit = new Button
             {
                 Image = new Bitmap(Properties.Resources.exit, new Size(35, 35)),
-                Text = "? Salir",
+                Text = "Salir",
                 Font = new Font("Segoe UI", 12),
                 Size = new Size(300, 45),
                 Location = new Point(150, 345),
@@ -137,10 +137,19 @@ namespace Game.Forms
                 MessageBox.Show("Por favor, ingresa tu nombre", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            var gameForm = new GameForm(txtPlayerName.Text);
-            gameForm.FormClosed += (s, args) => this.Show();
-            this.Hide();
-            gameForm.Show();
+
+            // Mostrar primero el formulario de instrucciones
+            var instructionsForm = new InstructionsForm();
+            var result = instructionsForm.ShowDialog();
+
+            // Si el usuario completa el tutorial, iniciar el juego
+            if (result == DialogResult.OK)
+            {
+                var gameForm = new GameForm(txtPlayerName.Text);
+                gameForm.FormClosed += (s, args) => this.Show();
+                this.Hide();
+                gameForm.Show();
+            }
         }
 
         private void BtnLeaderboard_Click(object sender, EventArgs e)

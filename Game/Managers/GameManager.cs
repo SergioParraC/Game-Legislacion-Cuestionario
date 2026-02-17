@@ -22,6 +22,7 @@ namespace Game.Managers
         public List<string> DisplayedOptions { get; private set; }
         public string LastPenaltyMessage { get; set; }
         public PenaltyType Penality { get; set; }
+        private bool _applyExtraPenaltyNextQuestion = false; // Bandera para penalización adicional
 
         private readonly ScoreManager _scoreManager;
         private readonly Facade.GameFacade _gameFacade;
@@ -38,6 +39,13 @@ namespace Game.Managers
 
         public void StartLevel(int levelNumber)
         {
+            // Resetear estados de penalizaciones al iniciar un nuevo nivel
+            IsShufflePenaltyActive = false;
+            IsGhostAnswerActive = false;
+            LastPenaltyMessage = "";
+            Penality = PenaltyType.Nothing;
+            _applyExtraPenaltyNextQuestion = false; 
+            
             CurrentLevel = new Level(levelNumber);
             Player.CurrentLevel = levelNumber;
             CurrentQuestionIndex = 0;
@@ -106,7 +114,7 @@ namespace Game.Managers
                     EliminateWrongOption();
                     break;
                 case PowerUpType.ExtraTime:
-                    TimeRemaining += 5;
+                    TimeRemaining += 10;
                     break;
                 case PowerUpType.Retry:
                     IsRetryAvailable = true;
@@ -152,6 +160,9 @@ namespace Game.Managers
                     IsRetryAvailable = false;
                 }
                 
+                // Respuesta correcta: NO se aplica penalización adicional a la siguiente pregunta
+                _applyExtraPenaltyNextQuestion = false;
+                
                 // Avanzar a la siguiente pregunta
                 CurrentQuestionIndex++;
             }
@@ -162,7 +173,10 @@ namespace Game.Managers
                 {
                     Player.CorrectStreak = 0;
                     Player.Score = _scoreManager.ApplyErrorPenalty(Player.Score);
-                    ApplyRandomPenalty();
+                    
+                    // Respuesta incorrecta: GARANTIZAR penalización adicional en la siguiente pregunta
+                    _applyExtraPenaltyNextQuestion = true;
+                    
                     CurrentQuestionIndex++;
                 }
                 // Si tiene reintento, se manejará el cambio de pregunta en el Form
@@ -173,6 +187,12 @@ namespace Game.Managers
 
         private void ApplyLevelPenalties()
         {
+            // Si hubo error en la pregunta anterior, GARANTIZAR una penalización adicional
+            if (_applyExtraPenaltyNextQuestion)
+            {
+                ApplyRandomPenalty();
+                _applyExtraPenaltyNextQuestion = false; // Resetear bandera
+            }
             
             if (CurrentLevel.Number >= 2 && _random.Next(100) < 20)
             {
@@ -211,8 +231,11 @@ namespace Game.Managers
                     LastPenaltyMessage = "⚠️ ¡Penalización! Power-ups bloqueados";
                     break;
                 case PenaltyType.GhostAnswer:
-                    LastPenaltyMessage = "👻 ¡Penalización! Respuesnta confusa";
                     IsGhostAnswerActive = true;
+                    LastPenaltyMessage = "👻 ¡Penalización! Respuesta confusa";
+                    break;
+                case PenaltyType.Nothing:
+                    // Sin penalización
                     break;
             }
         }

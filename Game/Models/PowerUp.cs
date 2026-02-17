@@ -13,7 +13,7 @@ namespace Game.Models
         public string Description { get; set; }
         public bool CanCombineWithOthers { get; set; }
         public string ShortName { get; set; }
-        public Bitmap Image { get; set; } // Cambia Resources a Bitmap
+        public Bitmap Image { get; set; }
 
         public PowerUp(PowerUpType type)
         {
@@ -24,21 +24,21 @@ namespace Game.Models
                 case PowerUpType.EliminateOption:
                     Name = "Eliminar Opción";
                     ShortName = "Eliminar";
-                    Description = "Elimina una respuesta incorrecta";
+                    Description = "Elimina una respuesta incorrecta de las 4 opciones";
                     CanCombineWithOthers = true;
                     Image = new Bitmap(Resources.eliminateOption, new Size(35, 35));
                     break;
                 case PowerUpType.ExtraTime:
-                    Name = "+5 Segundos";
-                    ShortName = "+5s";
-                    Description = "Añade 5 segundos al temporizador";
+                    Name = "+10 Segundos";
+                    ShortName = "+10s";
+                    Description = "Añade 10 segundos adicionales para responder";
                     CanCombineWithOthers = true;
                     Image = new Bitmap(Resources.timeAdd, new Size(35, 35)); 
                     break;
                 case PowerUpType.Retry:
                     Name = "Cambiar pregunta";
                     ShortName = "Cambio";
-                    Description = "Cambia la pregunta si no tienes el conocimiento";
+                    Description = "Cambia la pregunta si no sabes la respuesta";
                     CanCombineWithOthers = false;
                     Image = new Bitmap(Resources.retry, new Size(35, 35));
                     break;
@@ -47,7 +47,7 @@ namespace Game.Models
                     ShortName = "x2 Pts";
                     Description = "Duplica los puntos de esta pregunta";
                     CanCombineWithOthers = true;
-                    Image = new Bitmap(Resources.doublePoints, new Size(35, 35));
+                    Image = new Bitmap(Resources.doublePoint, new Size(35, 35));
                     break;
             }
         }
